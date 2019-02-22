@@ -9,8 +9,12 @@
 #include <HTTPClient.h>
 #include <esp_wifi.h>
 
-#define SERIAL_DEBUG_ENABLED
-#include "debug.h"
+static const char TAG[] = "MyModule";
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+#include "esp_log.h"
+#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
+
+// esp_log_level_set(TAG, ESP_LOG_INFO);     // enable INFO logs from this module
 
 #define VS1053_CS 32
 #define VS1053_DCS 33
@@ -24,13 +28,13 @@ const int previousButton = 12;
 const int nextButton = 13;
 
 // char ssid[] = "yourSSID";         //  your network SSID (name)
-// char pass[] = "yourWifiPassword"; // your network password
+// char password[] = "yourWifiPassword"; // your network password
 #include "myWifi.h"
 
 // Few Radio Stations
-char *host[4] = {"149.255.59.162", "radiostreaming.ert.gr", "realfm.live24.gr", "secure1.live24.gr"};
-char *path[4] = {"/1", "/ert-kosmos", "/realfm", "/skai1003"};
-int port[4] = {8062, 80, 80, 80};
+char *host[4] = {"149.255.59.162", "w.dktr.pl", "realfm.live24.gr", "secure1.live24.gr"};
+char *path[4] = {"/1", "/trojka3.ogg", "/realfm", "/skai1003"};
+int port[4] = {8062, 8080, 80, 80};
 
 int status = WL_IDLE_STATUS;
 WiFiClient client;
@@ -40,7 +44,6 @@ VS1053 player(VS1053_CS, VS1053_DCS, VS1053_DREQ);
 
 void IRAM_ATTR previousButtonInterrupt()
 {
-
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
 
@@ -73,21 +76,20 @@ void IRAM_ATTR nextButtonInterrupt()
 void printSignalStrength()
 {
   // https://www.netspotapp.com/what-is-rssi-level.html
-  DebugPrintln(String("WiFi isConnected: ") + WiFi.isConnected() + ", signal: " + WiFi.RSSI() + "dBm");
+  ESP_LOGI(TAG, "WiFi isConnected: %c, signal: %d dBm", WiFi.isConnected()?'y':'n', WiFi.RSSI());
 }
 
 void connectToWIFI()
 {
-  WiFi.begin(ssid, pass);
-  DebugPrint("Wifi connecting");
+  WiFi.begin(ssid, password);
+  ESP_LOGI(TAG, "Wifi connecting");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
   Serial.println();
-  DebugPrintln("WiFi connected, IP address: ");
-  DebugPrintln(WiFi.localIP()); // it does not print nicely when string concatenated
+  ESP_LOGI(TAG, "WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
   printSignalStrength();
 }
 
@@ -101,7 +103,7 @@ void station_connect(int station_no)
     connectToWIFI();
   }
   if (client.connect(host[station_no], port[station_no]))
-    DebugPrintln(String("Connected now to ") + host[station_no] + ":" + port[station_no]);
+    ESP_LOGI(TAG, "Connected now to %s:%d", host[station_no], port[station_no]);
   client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
                "Host: " + host[station_no] + "\r\n" +
                "Connection: close\r\n\r\n");
@@ -109,9 +111,9 @@ void station_connect(int station_no)
 
 void initMP3Decoder()
 {
-  DebugPrintln("Init player");
+  ESP_LOGI(TAG, "Init player");
   player.begin();
-  player.switchToMp3Mode(); // optional, some boards require this
+  // player.switchToMp3Mode(); // optional, some boards require this
   player.setVolume(VOLUME);
 }
 
@@ -143,7 +145,7 @@ void loop()
 
   if (!client.connected())
   {
-    DebugPrintln("Reconnecting...");
+    ESP_LOGI(TAG, "Reconnecting...");
     station_connect(radioStation);
   }
 
