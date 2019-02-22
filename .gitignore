@@ -6,3 +6,4 @@
 .vscode/launch.json
 .vscode/settings.json
 *.code-workspace
+src/myWifi.h

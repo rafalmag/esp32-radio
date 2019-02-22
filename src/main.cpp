@@ -8,9 +8,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <esp_wifi.h>
-#include "debug.h"
 
 #define SERIAL_DEBUG_ENABLED
+#include "debug.h"
 
 #define VS1053_CS 32
 #define VS1053_DCS 33
@@ -23,9 +23,9 @@ int previousRadioStation = -1;
 const int previousButton = 12;
 const int nextButton = 13;
 
-// TODO use secret file ;)
-char ssid[] = "yourSSID";         //  your network SSID (name)
-char pass[] = "yourWifiPassword"; // your network password
+// char ssid[] = "yourSSID";         //  your network SSID (name)
+// char pass[] = "yourWifiPassword"; // your network password
+#include "myWifi.h"
 
 // Few Radio Stations
 char *host[4] = {"149.255.59.162", "radiostreaming.ert.gr", "realfm.live24.gr", "secure1.live24.gr"};
@@ -70,32 +70,48 @@ void IRAM_ATTR nextButtonInterrupt()
   last_interrupt_time = interrupt_time;
 }
 
-void station_connect(int station_no)
+void printSignalStrength()
 {
-  if (client.connect(host[station_no], port[station_no]))
-    DebugPrintln("Connected now");
-  client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
-               "Host: " + host[station_no] + "\r\n" +
-               "Connection: close\r\n\r\n");
+  // https://www.netspotapp.com/what-is-rssi-level.html
+  DebugPrintln(String("WiFi isConnected: ") + WiFi.isConnected() + ", signal: " + WiFi.RSSI() + "dBm");
 }
 
 void connectToWIFI()
 {
   WiFi.begin(ssid, pass);
+  DebugPrint("Wifi connecting");
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
-  DebugPrintln("WiFi connected");
-  DebugPrintln("IP address: ");
-  DebugPrintln(WiFi.localIP());
+  Serial.println();
+  DebugPrintln("WiFi connected, IP address: ");
+  DebugPrintln(WiFi.localIP()); // it does not print nicely when string concatenated
+  printSignalStrength();
+}
+
+void station_connect(int station_no)
+{
+  client.stop();
+  printSignalStrength();
+  if (!WiFi.isConnected())
+  {
+    WiFi.disconnect();
+    connectToWIFI();
+  }
+  if (client.connect(host[station_no], port[station_no]))
+    DebugPrintln(String("Connected now to ") + host[station_no] + ":" + port[station_no]);
+  client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
+               "Host: " + host[station_no] + "\r\n" +
+               "Connection: close\r\n\r\n");
 }
 
 void initMP3Decoder()
 {
+  DebugPrintln("Init player");
   player.begin();
-  // player.switchToMp3Mode(); // optional, some boards require this
+  player.switchToMp3Mode(); // optional, some boards require this
   player.setVolume(VOLUME);
 }
 
@@ -103,6 +119,7 @@ void setup()
 {
   Serial.begin(9600);
   delay(500);
+  Serial.println();
   SPI.begin();
 
   pinMode(previousButton, INPUT_PULLUP);
@@ -118,7 +135,6 @@ void setup()
 
 void loop()
 {
-
   if (radioStation != previousRadioStation)
   {
     station_connect(radioStation);
