@@ -12,9 +12,6 @@
 static const char TAG[] = "MyModule";
 #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
-#define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
-
-// esp_log_level_set(TAG, ESP_LOG_INFO);     // enable INFO logs from this module
 
 #define VS1053_CS 32
 #define VS1053_DCS 33
@@ -32,9 +29,10 @@ const int nextButton = 13;
 #include "myWifi.h"
 
 // Few Radio Stations
-char *host[4] = {"149.255.59.162", "w.dktr.pl", "realfm.live24.gr", "secure1.live24.gr"};
-char *path[4] = {"/1", "/trojka3.ogg", "/realfm", "/skai1003"};
-int port[4] = {8062, 8080, 80, 80};
+// only one not working: w.dktr.pl
+char *host[4] = {"149.255.59.162", "w.dktr.pl", "41.dktr.pl", "secure1.live24.gr"};
+char *path[4] = {"/1", "/trojka3.ogg", "/trojka.ogg", "/skai1003"};
+int port[4] = {8062, 8000, 8000, 80};
 
 int status = WL_IDLE_STATUS;
 WiFiClient client;
