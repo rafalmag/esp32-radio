@@ -1,9 +1,3 @@
-/////////////////////////////////////////////////////////////////
-//         ESP32 Internet Radio Project     v1.00              //
-//       Get the latest version of the code here:              //
-//          http://educ8s.tv/esp32-internet-radio              //
-/////////////////////////////////////////////////////////////////
-
 #include <VS1053.h> //https://github.com/baldram/ESP_VS1053_Library
 #include <WiFi.h>
 #include <HTTPClient.h>
