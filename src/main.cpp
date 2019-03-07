@@ -27,9 +27,9 @@ const int nextButton = 13;
 
 // Few Radio Stations
 // only one not working: w.dktr.pl
-char *host[4] = {"149.255.59.162", "w.dktr.pl", "41.dktr.pl", "secure1.live24.gr"};
-char *path[4] = {"/1", "/trojka3.ogg", "/trojka.ogg", "/skai1003"};
-int port[4] = {8062, 8000, 8000, 80};
+char *host[5] = {"149.255.59.162", "d.dktr.pl", "41.dktr.pl", "w.dktr.pl", "stream3.polskieradio.pl"};
+char *path[5] = {"/1", "/trojka.ogg", "/trojka.ogg", "/trojka.ogg","/"};
+int port[5] = {8062, 8000, 8000, 8000,8904};
 
 int status = WL_IDLE_STATUS;
 WiFiClient client;
@@ -119,7 +119,7 @@ void IRAM_ATTR previousButtonInterrupt()
     if (radioStation > 0)
       radioStation--;
     else
-      radioStation = 3;
+      radioStation = 4;
   }
   last_interrupt_time = interrupt_time;
 }
@@ -132,7 +132,7 @@ void IRAM_ATTR nextButtonInterrupt()
 
   if (interrupt_time - last_interrupt_time > 200)
   {
-    if (radioStation < 4)
+    if (radioStation < 5)
       radioStation++;
     else
       radioStation = 0;
@@ -172,6 +172,7 @@ void connectToWIFI()
 
 void station_connect(int station_no)
 {
+  player.stopSong();
   client.stop();
   printSignalStrength();
   if (!WiFi.isConnected())
@@ -184,6 +185,7 @@ void station_connect(int station_no)
   client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
                "Host: " + host[station_no] + "\r\n" +
                "Connection: close\r\n\r\n");
+  player.startSong();
 }
 
 void initMP3Decoder()
@@ -249,11 +251,13 @@ void updateTft(){
       tft.drawLine(osx, osy, 120, 121, TFT_RED);
 
     tft.fillCircle(120, 121, 3, TFT_RED);
-    tft.drawCentreString("                                        ",120,260,4);
+    //TODO to avoid flickering maybe redraw less often
+    tft.fillRect(0,260,240,30,TFT_BACKGROUND);
+    // tft.drawCentreString("                                        ",120,260,4);
     tft.drawCentreString(host[radioStation],120,260,4);
     char text[255];
     sprintf(text," Wifi %d %%",rssiToStrength(WiFi.RSSI()));
-    tft.drawCentreString(text,120,280,4);
+    tft.drawCentreString(text,120,290,4);
   }
 }
 
