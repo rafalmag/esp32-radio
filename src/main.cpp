@@ -3,7 +3,7 @@
 #include <HTTPClient.h>
 #include <esp_wifi.h>
 
-static const char TAG[] = "MyModule";
+static const char TAG[] = "radio";
 #define LOG_LOCAL_LEVEL ESP_LOG_DEBUG
 #include "esp_log.h"
 
@@ -65,10 +65,20 @@ void IRAM_ATTR nextButtonInterrupt()
   last_interrupt_time = interrupt_time;
 }
 
+int8_t rssiToStrength(int8_t rssiDb)
+{
+  if (rssiDb >= -50)
+    return 100;
+  else if (rssiDb <= -100)
+    return 0;
+  else
+    return 2 * (rssiDb + 100);
+}
+
 void printSignalStrength()
 {
   // https://www.netspotapp.com/what-is-rssi-level.html
-  ESP_LOGI(TAG, "WiFi isConnected: %c, signal: %d dBm", WiFi.isConnected()?'y':'n', WiFi.RSSI());
+  ESP_LOGI(TAG, "WiFi isConnected: %c, signal: %d %%", WiFi.isConnected() ? 'y' : 'n', rssiToStrength(WiFi.RSSI()));
 }
 
 void connectToWIFI()
