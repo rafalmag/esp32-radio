@@ -5,9 +5,14 @@ work in progress
 ## Hardware used:
 - ESP32 - ESP32 DevKit
 - VS1053 board
-- 2.4" TFT SPI 240x320 using ILI9341 IC (to be added)
-- audio amplifier
-- power source
+  - connected to: MISO=19, MOSI=23, SCLK=18, (X)CS=32, (X)DCS=33, DREQ=35, (X)RST=EN, GND, 5V (pins configured in main.c)
+- 2.4" TFT SPI 240x320 using ILI9341 IC
+  - connected to: SDO(MISO)=19, SDI(MOSI)=23, SCK=18, CS=27, D/C=33, RST=EN, VCC=3.3V, GND, LED through 1k potentiometer to 3.3V (pins configured in platformio.ini via build_flags)
+- mono 18W audio amplifier (TDA2030A, working voltage: 6 ~ 12V, peak output current is 3A, volume regulated by 10k potentiometer)
+- rotary encoder (with home made hardware debouncer)
+  - connected to pins 2,4,15
+- power source 230V=>5V (25W)
+- DC-DC step up converter 5V=>12V (LM2587, should easily handle 3A)
 
 ## Reference:
 ![esp32](ESP32-DOIT-DEVKIT-V1-Board-Pinout-36-GPIOs-updated.jpg "ESP32")
