@@ -34,13 +34,12 @@ uint8_t mp3buff[32]; // vs1053 likes 32 bytes at a time
 
 VS1053 player(VS1053_CS, VS1053_DCS, VS1053_DREQ);
 
-// no pull up
-// issue with pin2 it status 0 all the time....
+// issue with pin2 it status "0" all the time and breaks in the middle of interrupt, 
+// proably caused by being a ADC2 and Wifi is using those pins as well
 #define ROTARY_ENCODER_A_PIN 16
 #define ROTARY_ENCODER_B_PIN 17
 // pull up required
 #define ROTARY_ENCODER_BUTTON_PIN 15
-#define ROTARY_ENCODER_VCC_PIN -1 // manual pull-up
 
 #include "ESPRotary.h"
 #include "Button2.h"
