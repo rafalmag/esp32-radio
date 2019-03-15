@@ -42,13 +42,6 @@ VS1053 player(VS1053_CS, VS1053_DCS, VS1053_DREQ);
 #define ROTARY_ENCODER_BUTTON_PIN 15
 #define ROTARY_ENCODER_VCC_PIN -1 // manual pull-up
 
-// #include "AiEsp32RotaryEncoder.h"
-// AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(
-//     ROTARY_ENCODER_A_PIN,
-//     ROTARY_ENCODER_B_PIN,
-//     ROTARY_ENCODER_BUTTON_PIN,
-//     ROTARY_ENCODER_VCC_PIN);
-
 #include "ESPRotary.h"
 #include "Button2.h"
 
@@ -87,7 +80,7 @@ void connectToWIFI()
 
 void station_connect(int station_no)
 {
-  // player.stopSong();
+  player.stopSong();
   client.stop();
   printSignalStrength();
   if (!WiFi.isConnected())
@@ -100,8 +93,8 @@ void station_connect(int station_no)
   client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
                "Host: " + host[station_no] + "\r\n" +
                "Connection: close\r\n\r\n");
-  // player.startSong();
-  // updateStation(host[radioStation]);
+  player.startSong();
+  updateStation(host[radioStation]);
 }
 
 void initMP3Decoder()
@@ -144,8 +137,8 @@ void setup()
   Serial.println();
   SPI.begin();
 
-  // initMP3Decoder();
-  // initTft();
+  initMP3Decoder();
+  initTft();
 
   connectToWIFI();
 
@@ -155,58 +148,26 @@ void setup()
 
   b.setClickHandler(fastClickHandler);
   b.setLongClickHandler(longClickHandler);
-  
-  //   rotaryEncoder.begin();
-  // // rotaryEncoder.setup([] { Serial.println(String("hej") + digitalRead(ROTARY_ENCODER_A_PIN) + digitalRead(ROTARY_ENCODER_B_PIN)+ digitalRead(ROTARY_ENCODER_BUTTON_PIN)); rotaryEncoder.readEncoder_ISR(); });
-  // rotaryEncoder.setup([] { rotaryEncoder.readEncoder_ISR();delay(10); });
-  // // pinMode(ROTARY_ENCODER_A_PIN,INPUT_PULLUP);
-  // // pinMode(ROTARY_ENCODER_B_PIN,INPUT_PULLUP);
-  // rotaryEncoder.setBoundaries(0, 4, true);
 }
-
-// void rotary_loop()
-// {
-//   int8_t encoderDelta = rotaryEncoder.encoderChanged();
-
-//   if (encoderDelta != 0)
-//   {
-//     ESP_LOGI(TAG, "Encoder delta: %d", encoderDelta);
-//     radioStation = rotaryEncoder.readEncoder();
-//     ESP_LOGI(TAG, "Encoder read: %d", radioStation);
-//   }
-// }
 
 void loop()
 {
-  EVERY_N_MILLISECONDS(10){
-    if(digitalRead(ROTARY_ENCODER_B_PIN)==0){
-      Serial.println("B=0");
-    }
-    if(digitalRead(ROTARY_ENCODER_A_PIN)==0){
-      Serial.println("A=0");
-    }
-  }
-  // EVERY_N_MILLISECONDS(50){
-    r.loop();
-  // }
+  r.loop();
   b.loop();
 
-
-  // EVERY_N_MILLISECONDS(1000)
-  // {
-  //   Serial.println(String("ho ") + digitalRead(ROTARY_ENCODER_A_PIN) + digitalRead(ROTARY_ENCODER_B_PIN)+ digitalRead(ROTARY_ENCODER_BUTTON_PIN));
-  //   updateClock();
-  // }
+  EVERY_N_MILLISECONDS(1000)
+  {
+    updateClock();
+  }
   EVERY_N_MILLISECONDS(5000)
   {
     updateWifi(rssiToStrength(WiFi.RSSI()));
   }
-  // rotary_loop();
-  // if (radioStation != previousRadioStation)
-  // {
-  //   station_connect(radioStation);
-  //   previousRadioStation = radioStation;
-  // }
+  if (radioStation != previousRadioStation)
+  {
+    station_connect(radioStation);
+    previousRadioStation = radioStation;
+  }
 
   if (!client.connected())
   {
@@ -214,9 +175,9 @@ void loop()
     station_connect(radioStation);
   }
 
-  // if (client.available() > 0)
-  // {
-  //   uint8_t bytesread = client.read(mp3buff, 32);
-  //   player.playChunk(mp3buff, bytesread);
-  // }
+  if (client.available() > 0)
+  {
+    uint8_t bytesread = client.read(mp3buff, 32);
+    player.playChunk(mp3buff, bytesread);
+  }
 }
