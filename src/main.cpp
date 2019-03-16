@@ -13,9 +13,10 @@ static const char TAG[] = "radio";
 #define VS1053_DCS 33
 #define VS1053_DREQ 35
 
-#define VOLUME 60 // volume level 0-100
+int volume = 80; // volume level 0-100
+int lastVolume = volume;
 
-int radioStation = 0;
+volatile int8_t radioStation = 0;
 int previousRadioStation = -1;
 
 // char ssid[] = "yourSSID";         //  your network SSID (name)
@@ -34,7 +35,7 @@ uint8_t mp3buff[32]; // vs1053 likes 32 bytes at a time
 
 VS1053 player(VS1053_CS, VS1053_DCS, VS1053_DREQ);
 
-// issue with pin2 it status "0" all the time and breaks in the middle of interrupt, 
+// issue with pin2 it status "0" all the time and breaks in the middle of interrupt,
 // proably caused by being a ADC2 and Wifi is using those pins as well
 #define ROTARY_ENCODER_A_PIN 16
 #define ROTARY_ENCODER_B_PIN 17
@@ -101,32 +102,41 @@ void initMP3Decoder()
   ESP_LOGI(TAG, "Init player");
   player.begin();
   // player.switchToMp3Mode(); // optional, some boards require this
-  player.setVolume(VOLUME);
+  player.setVolume(volume);
 }
 
-void changedHandler(ESPRotary &r)
+void IRAM_ATTR leftRotationHandler(ESPRotary &r)
 {
-  Serial.println("New position:");
-  Serial.println(r.getPosition());
+  if (b.isPressed())
+  {
+    volume -= 10;
+    if (volume < 0)
+      volume = 0;
+  }
+  else
+  {
+    if (radioStation > 0)
+      radioStation--;
+    else
+      radioStation = 4;
+  }
 }
 
-void rotationHandler(ESPRotary &r)
+void IRAM_ATTR rightRotationHandler(ESPRotary &r)
 {
-  Serial.println("Direction:");
-  Serial.println(r.directionToString(r.getDirection()));
-}
-
-void fastClickHandler(Button2 &btn)
-{
-  Serial.println("Current pos!");
-  Serial.println(r.getPosition());
-}
-
-void longClickHandler(Button2 &btn)
-{
-  r.resetPosition();
-  Serial.println("Reset pos!");
-  Serial.println(r.getPosition());
+  if (b.isPressed())
+  {
+    volume += 10;
+    if (volume > 100)
+      volume = 100;
+  }
+  else
+  {
+    if (radioStation < 5)
+      radioStation++;
+    else
+      radioStation = 0;
+  }
 }
 
 void setup()
@@ -141,12 +151,8 @@ void setup()
 
   connectToWIFI();
 
-  r.setChangedHandler(changedHandler);
-  r.setLeftRotationHandler(rotationHandler);
-  r.setRightRotationHandler(rotationHandler);
-
-  b.setClickHandler(fastClickHandler);
-  b.setLongClickHandler(longClickHandler);
+  r.setLeftRotationHandler(leftRotationHandler);
+  r.setRightRotationHandler(rightRotationHandler);
 }
 
 void loop()
@@ -177,6 +183,9 @@ void loop()
   if (client.available() > 0)
   {
     uint8_t bytesread = client.read(mp3buff, 32);
+    if (lastVolume != volume)
+      player.setVolume(volume);
+    lastVolume = volume;
     player.playChunk(mp3buff, bytesread);
   }
 }
