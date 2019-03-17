@@ -24,7 +24,6 @@ int previousRadioStation = -1;
 #include "myWifi.h"
 
 // Few Radio Stations
-// only one not working: w.dktr.pl
 char *host[5] = {"149.255.59.162", "d.dktr.pl", "41.dktr.pl", "w.dktr.pl", "stream3.polskieradio.pl"};
 char *path[5] = {"/1", "/trojka.ogg", "/trojka.ogg", "/trojka.ogg", "/"};
 int port[5] = {8062, 8000, 8000, 8000, 8904};
@@ -168,16 +167,19 @@ void loop()
   {
     updateWifi(rssiToStrength(WiFi.RSSI()));
   }
-  if (radioStation != previousRadioStation)
+  EVERY_N_MILLISECONDS(50)
   {
-    station_connect(radioStation);
-    previousRadioStation = radioStation;
-  }
+    if (radioStation != previousRadioStation)
+    {
+      station_connect(radioStation);
+      previousRadioStation = radioStation;
+    }
 
-  if (!client.connected())
-  {
-    ESP_LOGI(TAG, "Reconnecting...");
-    station_connect(radioStation);
+    if (!client.connected())
+    {
+      ESP_LOGI(TAG, "Reconnecting...");
+      station_connect(radioStation);
+    }
   }
 
   if (client.available() > 0)
