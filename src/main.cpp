@@ -13,19 +13,17 @@ static const char TAG[] = "radio";
 #define VS1053_DCS 33
 #define VS1053_DREQ 35
 
-#define VOLUME 90 // volume level 0-100
+int volume = 80; // volume level 0-100
+int lastVolume = volume;
 
-int radioStation = 0;
+volatile int8_t radioStation = 0;
 int previousRadioStation = -1;
-const int previousButton = 12;
-const int nextButton = 13;
 
 // char ssid[] = "yourSSID";         //  your network SSID (name)
 // char password[] = "yourWifiPassword"; // your network password
 #include "myWifi.h"
 
 // Few Radio Stations
-// only one not working: w.dktr.pl
 char *host[5] = {"149.255.59.162", "d.dktr.pl", "41.dktr.pl", "w.dktr.pl", "stream3.polskieradio.pl"};
 char *path[5] = {"/1", "/trojka.ogg", "/trojka.ogg", "/trojka.ogg", "/"};
 int port[5] = {8062, 8000, 8000, 8000, 8904};
@@ -36,36 +34,18 @@ uint8_t mp3buff[32]; // vs1053 likes 32 bytes at a time
 
 VS1053 player(VS1053_CS, VS1053_DCS, VS1053_DREQ);
 
-void IRAM_ATTR previousButtonInterrupt()
-{
-  static unsigned long last_interrupt_time = 0;
-  unsigned long interrupt_time = millis();
+// issue with pin2 it status "0" all the time and breaks in the middle of interrupt,
+// proably caused by being a ADC2 and Wifi is using those pins as well
+#define ROTARY_ENCODER_A_PIN 16
+#define ROTARY_ENCODER_B_PIN 17
+// pull up required
+#define ROTARY_ENCODER_BUTTON_PIN 15
 
-  if (interrupt_time - last_interrupt_time > 200)
-  {
-    if (radioStation > 0)
-      radioStation--;
-    else
-      radioStation = 4;
-  }
-  last_interrupt_time = interrupt_time;
-}
+#include "ESPRotary.h"
+#include "Button2.h"
 
-void IRAM_ATTR nextButtonInterrupt()
-{
-
-  static unsigned long last_interrupt_time = 0;
-  unsigned long interrupt_time = millis();
-
-  if (interrupt_time - last_interrupt_time > 200)
-  {
-    if (radioStation < 5)
-      radioStation++;
-    else
-      radioStation = 0;
-  }
-  last_interrupt_time = interrupt_time;
-}
+ESPRotary r = ESPRotary(ROTARY_ENCODER_A_PIN, ROTARY_ENCODER_B_PIN, 4);
+Button2 b = Button2(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP);
 
 int8_t rssiToStrength(int8_t rssiDb)
 {
@@ -121,7 +101,41 @@ void initMP3Decoder()
   ESP_LOGI(TAG, "Init player");
   player.begin();
   // player.switchToMp3Mode(); // optional, some boards require this
-  player.setVolume(VOLUME);
+  player.setVolume(volume);
+}
+
+void IRAM_ATTR leftRotationHandler(ESPRotary &r)
+{
+  if (b.isPressed())
+  {
+    volume -= 10;
+    if (volume < 0)
+      volume = 0;
+  }
+  else
+  {
+    if (radioStation > 0)
+      radioStation--;
+    else
+      radioStation = 4;
+  }
+}
+
+void IRAM_ATTR rightRotationHandler(ESPRotary &r)
+{
+  if (b.isPressed())
+  {
+    volume += 10;
+    if (volume > 100)
+      volume = 100;
+  }
+  else
+  {
+    if (radioStation < 5)
+      radioStation++;
+    else
+      radioStation = 0;
+  }
 }
 
 void setup()
@@ -131,20 +145,20 @@ void setup()
   Serial.println();
   SPI.begin();
 
-  pinMode(previousButton, INPUT_PULLUP);
-  pinMode(nextButton, INPUT_PULLUP);
-
-  attachInterrupt(digitalPinToInterrupt(previousButton), previousButtonInterrupt, FALLING);
-  attachInterrupt(digitalPinToInterrupt(nextButton), nextButtonInterrupt, FALLING);
-
   initMP3Decoder();
   initTft();
 
   connectToWIFI();
+
+  r.setLeftRotationHandler(leftRotationHandler);
+  r.setRightRotationHandler(rightRotationHandler);
 }
 
 void loop()
 {
+  r.loop();
+  b.loop();
+
   EVERY_N_MILLISECONDS(1000)
   {
     updateClock();
@@ -153,21 +167,27 @@ void loop()
   {
     updateWifi(rssiToStrength(WiFi.RSSI()));
   }
-  if (radioStation != previousRadioStation)
+  EVERY_N_MILLISECONDS(50)
   {
-    station_connect(radioStation);
-    previousRadioStation = radioStation;
-  }
+    if (radioStation != previousRadioStation)
+    {
+      station_connect(radioStation);
+      previousRadioStation = radioStation;
+    }
 
-  if (!client.connected())
-  {
-    ESP_LOGI(TAG, "Reconnecting...");
-    station_connect(radioStation);
+    if (!client.connected())
+    {
+      ESP_LOGI(TAG, "Reconnecting...");
+      station_connect(radioStation);
+    }
   }
 
   if (client.available() > 0)
   {
     uint8_t bytesread = client.read(mp3buff, 32);
+    if (lastVolume != volume)
+      player.setVolume(volume);
+    lastVolume = volume;
     player.playChunk(mp3buff, bytesread);
   }
 }
