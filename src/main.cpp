@@ -69,7 +69,7 @@ void connectToWIFI()
   ESP_LOGI(TAG, "Wifi connecting");
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(100);
     Serial.print(".");
   }
   Serial.println();
@@ -143,6 +143,9 @@ void setup()
   Serial.begin(9600);
   delay(500);
   Serial.println();
+
+  esp_log_level_set("ESP_VS1053", ESP_LOG_INFO); 
+
   SPI.begin();
 
   initMP3Decoder();
@@ -156,6 +159,12 @@ void setup()
 
 void loop()
 {
+  // or even longer, eg. 2min?
+  EVERY_N_SECONDS(10)
+  {
+    // TODO maybe it could be a xtask?
+    initTimeFromNtp();
+  }
   r.loop();
   b.loop();
 

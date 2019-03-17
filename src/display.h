@@ -19,6 +19,25 @@ static uint8_t conv2d(const char *p)
 
 uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
 
+
+#include <NTPtimeESP.h>
+NTPtime NTPpl("2.pl.pool.ntp.org"); // https://www.pool.ntp.org/zone/pl
+strDateTime dateTime;
+
+// TODO maybe it could be a xtask?
+void initTimeFromNtp()
+{
+  ESP_LOGI(TAG, "Updating time");
+  dateTime = NTPpl.getNTPtime(1.0, 1);
+  if (dateTime.valid)
+  {
+    ss = dateTime.second;
+    mm = dateTime.minute;
+    hh = dateTime.hour;
+    ESP_LOGI(TAG, "Updated time %d:%d:%d", hh, mm, ss);
+  }
+}
+
 boolean initial = 1;
 
 word ConvertRGB(byte R, byte G, byte B)
