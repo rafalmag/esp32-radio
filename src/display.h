@@ -17,16 +17,15 @@ static uint8_t conv2d(const char *p)
   return 10 * v + *++p - '0';
 }
 
-uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
+// uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
+uint8_t hh = 0, mm = 0, ss = 0;
 
 #include <time.h>
 void initTimeFromNtp()
 {
   // https://www.pool.ntp.org/zone/pl
-  configTime(3600, 3600, "2.pl.pool.ntp.org", "1.pl.pool.ntp.org");
   // Set timezone to CEST
-  setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0", 1);
-  tzset();
+  configTzTime("CET-1CEST,M3.5.0,M10.5.0", "2.pl.pool.ntp.org", "1.pl.pool.ntp.org", "0.pl.pool.ntp.org");
 
   struct tm timeinfo;
   if (getLocalTime(&timeinfo))

@@ -144,7 +144,7 @@ void setup()
   delay(500);
   Serial.println();
 
-  esp_log_level_set("ESP_VS1053", ESP_LOG_INFO); 
+  esp_log_level_set("ESP_VS1053", ESP_LOG_INFO);
 
   SPI.begin();
 
@@ -162,6 +162,7 @@ void loop()
   r.loop();
   b.loop();
 
+  //TODO it must be more often in case the previous attempt was failure
   EVERY_N_MINUTES(30)
   {
     initTimeFromNtp();
