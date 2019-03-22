@@ -159,15 +159,13 @@ void setup()
 
 void loop()
 {
-  // or even longer, eg. 2min?
-  EVERY_N_SECONDS(10)
-  {
-    // TODO maybe it could be a xtask?
-    initTimeFromNtp();
-  }
   r.loop();
   b.loop();
 
+  EVERY_N_MINUTES(30)
+  {
+    initTimeFromNtp();
+  }
   EVERY_N_MILLISECONDS(1000)
   {
     updateClock();

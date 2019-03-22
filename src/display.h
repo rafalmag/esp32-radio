@@ -19,22 +19,23 @@ static uint8_t conv2d(const char *p)
 
 uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
 
-
-#include <NTPtimeESP.h>
-NTPtime NTPpl("2.pl.pool.ntp.org"); // https://www.pool.ntp.org/zone/pl
-strDateTime dateTime;
-
-// TODO maybe it could be a xtask?
+#include <time.h>
 void initTimeFromNtp()
 {
-  ESP_LOGI(TAG, "Updating time");
-  dateTime = NTPpl.getNTPtime(1.0, 1);
-  if (dateTime.valid)
+  // https://www.pool.ntp.org/zone/pl
+  configTime(3600, 3600, "2.pl.pool.ntp.org", "1.pl.pool.ntp.org");
+  // Set timezone to CEST
+  setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0", 1);
+  tzset();
+
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo))
   {
-    ss = dateTime.second;
-    mm = dateTime.minute;
-    hh = dateTime.hour;
+    ss = timeinfo.tm_sec;
+    mm = timeinfo.tm_min;
+    hh = timeinfo.tm_hour;
     ESP_LOGI(TAG, "Updated time %d:%d:%d", hh, mm, ss);
+    return;
   }
 }
 
