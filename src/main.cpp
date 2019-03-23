@@ -162,10 +162,10 @@ void loop()
   r.loop();
   b.loop();
 
-  //TODO it must be more often in case the previous attempt was failure
-  EVERY_N_MINUTES(30)
+  // it must be more often in case the previous attempt was failure
+  EVERY_N_MILLISECONDS(100)
   {
-    initTimeFromNtp();
+    updateTimeIfNeeded();
   }
   EVERY_N_MILLISECONDS(1000)
   {

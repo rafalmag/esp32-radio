@@ -20,24 +20,6 @@ static uint8_t conv2d(const char *p)
 // uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
 uint8_t hh = 0, mm = 0, ss = 0;
 
-#include <time.h>
-void initTimeFromNtp()
-{
-  // https://www.pool.ntp.org/zone/pl
-  // Set timezone to CEST
-  configTzTime("CET-1CEST,M3.5.0,M10.5.0", "2.pl.pool.ntp.org", "1.pl.pool.ntp.org", "0.pl.pool.ntp.org");
-
-  struct tm timeinfo;
-  if (getLocalTime(&timeinfo))
-  {
-    ss = timeinfo.tm_sec;
-    mm = timeinfo.tm_min;
-    hh = timeinfo.tm_hour;
-    ESP_LOGI(TAG, "Updated time %d:%d:%d", hh, mm, ss);
-    return;
-  }
-}
-
 boolean initial = 1;
 
 word ConvertRGB(byte R, byte G, byte B)
@@ -174,4 +156,31 @@ void updateWifi(int8_t wifiStrength)
   char text[255];
   sprintf(text, " Wifi %d %%", wifiStrength);
   tft.drawCentreString(text, 120, 290, 4);
+}
+
+#include <time.h>
+
+unsigned long A_30_MINS_IN_MS = 30 * 60 * 1000;
+
+inline void updateTimeIfNeeded()
+{
+  static unsigned long lastNtpUpdated = 0;
+  if (lastNtpUpdated == 0 || millis() - lastNtpUpdated >= A_30_MINS_IN_MS)
+  {
+    ESP_LOGI(TAG, "tryToUpdateTimeFromNtp, lastNtpUpdated = %d", lastNtpUpdated);
+    // https://www.pool.ntp.org/zone/pl
+    // Set timezone to CEST
+    configTzTime("CET-1CEST,M3.5.0,M10.5.0", "2.pl.pool.ntp.org", "1.pl.pool.ntp.org", "0.pl.pool.ntp.org");
+
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo))
+    {
+      ss = timeinfo.tm_sec;
+      mm = timeinfo.tm_min;
+      hh = timeinfo.tm_hour;
+      ESP_LOGI(TAG, "Updated time %d:%d:%d", hh, mm, ss);
+      lastNtpUpdated = millis();
+      initial = 1;
+    }
+  }
 }
