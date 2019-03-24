@@ -153,8 +153,9 @@ void updateStation(char *station)
 
 void updateWifi(int8_t wifiStrength)
 {
+  tft.fillRect(0, 290, 240, 30, TFT_BACKGROUND);
   char text[255];
-  sprintf(text, " Wifi %d %%", wifiStrength);
+  sprintf(text, "Wifi %d %%", wifiStrength);
   tft.drawCentreString(text, 120, 290, 4);
 }
 
