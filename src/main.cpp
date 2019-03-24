@@ -13,20 +13,36 @@ static const char TAG[] = "radio";
 #define VS1053_DCS 33
 #define VS1053_DREQ 35
 
-int volume = 80; // volume level 0-100
-int lastVolume = volume;
+volatile int8_t volume = 80; // volume level 0-100
+int8_t lastVolume = volume;
 
 volatile int8_t radioStation = 0;
-int previousRadioStation = -1;
+int8_t previousRadioStation = -1;
 
 // char ssid[] = "yourSSID";         //  your network SSID (name)
 // char password[] = "yourWifiPassword"; // your network password
 #include "myWifi.h"
 
 // Few Radio Stations
-char *host[5] = {"149.255.59.162", "d.dktr.pl", "41.dktr.pl", "w.dktr.pl", "stream3.polskieradio.pl"};
-char *path[5] = {"/1", "/trojka.ogg", "/trojka.ogg", "/trojka.ogg", "/"};
-int port[5] = {8062, 8000, 8000, 8000, 8904};
+
+struct RadioStation
+{
+  char *name;
+  char *host;
+  char *path;
+  int port;
+};
+
+#define RADIO_STATIONS 6
+RadioStation radioStations[RADIO_STATIONS] = {
+    {"Trojka D", "d.dktr.pl", "/trojka.ogg", 8000},                                 // 224 kbps, 32bit/sample, 48kHz
+    {"Trojka 41", "41.dktr.pl", "/trojka.ogg", 8000},                               // 224 kbps, 32bit/sample, 48kHz
+    {"Trojka W", "w.dktr.pl", "/trojka.ogg", 8000},                                 // 224 kbps, 32bit/sample, 48kHz
+    {"Trojka S3", "stream3.polskieradio.pl", "/", 8904},                            // 96 kbps, 32bit/sample, 44.1kHz
+    {"Chili Zet", "n-6-1.dcs.redcdn.pl", "/sc/o2/Eurozet/live/chillizet.livx", 80}, // 128 kbps, 32bit/sample, 44.1kHz
+    {"The UK 1940s", "149.255.59.162", "/1", 8062}                                  // 128 kbps, 32bit/sample, 44.1kHz, mono
+                                                                                    // left empty for formatting
+};
 
 int status = WL_IDLE_STATUS;
 WiFiClient client;
@@ -77,30 +93,48 @@ void connectToWIFI()
   printSignalStrength();
 }
 
+void resetMp3Decoder()
+{
+  ESP_LOGI(TAG, "Reset VS1053...");
+  digitalWrite(VS1053_DCS, LOW); // Low & Low will bring reset pin low
+  digitalWrite(VS1053_CS, LOW);
+  delay(100);
+  ESP_LOGI(TAG, "End reset VS1053...");
+  digitalWrite(VS1053_DCS, HIGH); // Back to normal again
+  digitalWrite(VS1053_CS, HIGH);
+  delay(100);
+}
+
 void station_connect(int station_no)
 {
+  //TODO double check station no ??
   player.stopSong();
   client.stop();
+  updateStation(radioStations[station_no].name);
+  resetMp3Decoder();
   printSignalStrength();
   if (!WiFi.isConnected())
   {
     WiFi.disconnect();
     connectToWIFI();
   }
-  if (client.connect(host[station_no], port[station_no]))
-    ESP_LOGI(TAG, "Connected now to %s:%d", host[station_no], port[station_no]);
-  client.print(String("GET ") + path[station_no] + " HTTP/1.1\r\n" +
-               "Host: " + host[station_no] + "\r\n" +
-               "Connection: close\r\n\r\n");
-  player.startSong();
-  updateStation(host[radioStation]);
+  if (client.connect(radioStations[station_no].host, radioStations[station_no].port))
+  {
+    ESP_LOGI(TAG, "Connected now to %s:%d", radioStations[station_no].host, radioStations[station_no].port);
+    client.print(String("GET ") + radioStations[station_no].path + " HTTP/1.1\r\n" +
+                 "Host: " + radioStations[station_no].host + "\r\n" +
+                 "Connection: close\r\n\r\n");
+    player.startSong();
+  }
+  else
+    ESP_LOGI(TAG, "Connection FAILED radioStation %d, host:port %s:%d", station_no, radioStations[station_no].host, radioStations[station_no].port);
 }
 
 void initMP3Decoder()
 {
   ESP_LOGI(TAG, "Init player");
   player.begin();
-  // player.switchToMp3Mode(); // optional, some boards require this
+  player.switchToMp3Mode(); // optional, some boards require this
   player.setVolume(volume);
 }
 
@@ -108,16 +142,17 @@ void IRAM_ATTR leftRotationHandler(ESPRotary &r)
 {
   if (b.isPressed())
   {
-    volume -= 10;
-    if (volume < 0)
-      volume = 0;
+    int8_t tempVolume = volume - 10;
+    if (tempVolume < 0)
+      tempVolume = 0;
+    volume = tempVolume;
   }
   else
   {
-    if (radioStation > 0)
-      radioStation--;
-    else
-      radioStation = 4;
+    int8_t tempRadioStation = radioStation - 1;
+    if (tempRadioStation <= 0)
+      tempRadioStation = RADIO_STATIONS-1;
+    radioStation = tempRadioStation;
   }
 }
 
@@ -125,16 +160,17 @@ void IRAM_ATTR rightRotationHandler(ESPRotary &r)
 {
   if (b.isPressed())
   {
-    volume += 10;
-    if (volume > 100)
-      volume = 100;
+    int8_t tempVolume = volume + 10;
+    if (tempVolume > 100)
+      tempVolume = 100;
+    volume = tempVolume;
   }
   else
   {
-    if (radioStation < 5)
-      radioStation++;
-    else
-      radioStation = 0;
+    int8_t tempRadioStation = radioStation + 1;
+    if (tempRadioStation >= RADIO_STATIONS)
+      tempRadioStation = 0;
+    radioStation = tempRadioStation;
   }
 }
 
@@ -144,12 +180,10 @@ void setup()
   delay(500);
   Serial.println();
 
-  esp_log_level_set("ESP_VS1053", ESP_LOG_INFO);
-
   SPI.begin();
 
-  initMP3Decoder();
   initTft();
+  initMP3Decoder();
 
   connectToWIFI();
 
