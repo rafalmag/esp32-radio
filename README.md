@@ -20,6 +20,10 @@ work in progress
 
 ## Features
 
+### Analog clock with time updated from NTP
+
+### Display wifi signal next to station name
+
 ### Auto-recover from lost WiFi signal:
 ```
 537: void initMP3Decoder() 112 Init player
