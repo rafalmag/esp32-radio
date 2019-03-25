@@ -1,5 +1,6 @@
 #include <VS1053.h> //https://github.com/baldram/ESP_VS1053_Library
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <HTTPClient.h>
 #include <esp_wifi.h>
 #include "display.h"
@@ -22,6 +23,7 @@ int8_t previousRadioStation = -1;
 // char ssid[] = "yourSSID";         //  your network SSID (name)
 // char password[] = "yourWifiPassword"; // your network password
 #include "myWifi.h"
+WiFiMulti wifiMulti;
 
 // Few Radio Stations
 
@@ -81,9 +83,8 @@ void printSignalStrength()
 
 void connectToWIFI()
 {
-  WiFi.begin(ssid, password);
   ESP_LOGI(TAG, "Wifi connecting");
-  while (WiFi.status() != WL_CONNECTED)
+  while (wifiMulti.run() != WL_CONNECTED)
   {
     delay(100);
     Serial.print(".");
@@ -103,6 +104,7 @@ void resetMp3Decoder()
   digitalWrite(VS1053_DCS, HIGH); // Back to normal again
   digitalWrite(VS1053_CS, HIGH);
   delay(100);
+  player.softReset();
 }
 
 void station_connect(int station_no)
@@ -151,7 +153,7 @@ void IRAM_ATTR leftRotationHandler(ESPRotary &r)
   {
     int8_t tempRadioStation = radioStation - 1;
     if (tempRadioStation <= 0)
-      tempRadioStation = RADIO_STATIONS-1;
+      tempRadioStation = RADIO_STATIONS - 1;
     radioStation = tempRadioStation;
   }
 }
@@ -185,6 +187,10 @@ void setup()
   initTft();
   initMP3Decoder();
 
+  wifiMulti.addAP(ssid1, password1);
+  wifiMulti.addAP(ssid2, password2);
+  wifiMulti.addAP(ssid3, password3);
+  wifiMulti.addAP(ssid4, password4);
   connectToWIFI();
 
   r.setLeftRotationHandler(leftRotationHandler);
