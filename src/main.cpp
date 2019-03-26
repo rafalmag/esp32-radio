@@ -14,7 +14,7 @@ static const char TAG[] = "radio";
 #define VS1053_DCS 33
 #define VS1053_DREQ 35
 
-volatile int8_t volume = 80; // volume level 0-100
+volatile int8_t volume = 85; // volume level 0-100
 int8_t lastVolume = volume;
 
 volatile int8_t radioStation = 0;
@@ -144,7 +144,7 @@ void IRAM_ATTR leftRotationHandler(ESPRotary &r)
 {
   if (b.isPressed())
   {
-    int8_t tempVolume = volume - 10;
+    int8_t tempVolume = volume - 5;
     if (tempVolume < 0)
       tempVolume = 0;
     volume = tempVolume;
@@ -162,7 +162,7 @@ void IRAM_ATTR rightRotationHandler(ESPRotary &r)
 {
   if (b.isPressed())
   {
-    int8_t tempVolume = volume + 10;
+    int8_t tempVolume = volume + 5;
     if (tempVolume > 100)
       tempVolume = 100;
     volume = tempVolume;
